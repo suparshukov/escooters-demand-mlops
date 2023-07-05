@@ -1,10 +1,11 @@
 """Module for generating features"""
 import json
-import click
+from datetime import datetime
 from itertools import product
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
+import click
 import pandas as pd
 from shapely.geometry import Point, shape
 
@@ -31,9 +32,7 @@ def build_features(data: pd.DataFrame) -> pd.DataFrame:
     @return: DataFrame with features
     """
     features_dataframe = (
-        data.groupby(
-            [pd.Grouper(key="Start Time", freq="d"), "Start Community Area Name"]
-        )
+        data.groupby([pd.Grouper(key="Start Time", freq="d"), "Start Community Area Name"])
         .agg(
             trip_count=("Start Community Area Name", "count"),
             total_distance=("Trip Distance", "sum"),
@@ -54,11 +53,7 @@ def get_dataset_to_featurize(rides_df: pd.DataFrame) -> pd.DataFrame:
     and dates and target value for each combination  - the number of rides
     """
     rides_df["start_day"] = rides_df["Start Time"].dt.date
-    days = list(
-        pd.date_range(
-            rides_df["start_day"].min(), rides_df["start_day"].max(), freq="1D"
-        )
-    )
+    days = list(pd.date_range(rides_df["start_day"].min(), rides_df["start_day"].max(), freq="1D"))
 
     full_df = pd.DataFrame(
         list(product(days, rides_df["Start Community Area Name"].unique())),
@@ -68,15 +63,11 @@ def get_dataset_to_featurize(rides_df: pd.DataFrame) -> pd.DataFrame:
     full_df["community"] = full_df["community"].astype(str)
 
     community_rides_stat = (
-        rides_df.groupby(
-            [pd.Grouper(key="Start Time", freq="d"), "Start Community Area Name"]
-        )
+        rides_df.groupby([pd.Grouper(key="Start Time", freq="d"), "Start Community Area Name"])
         .agg(rides_number=("Start Community Area Name", "count"))
         .reset_index()
     )
-    community_rides_stat["start_day"] = pd.to_datetime(
-        community_rides_stat["Start Time"].dt.date
-    )
+    community_rides_stat["start_day"] = pd.to_datetime(community_rides_stat["Start Time"].dt.date)
     community_rides_stat.columns = [
         "Start Time",
         "community",
@@ -84,9 +75,7 @@ def get_dataset_to_featurize(rides_df: pd.DataFrame) -> pd.DataFrame:
         "start_day",
     ]
 
-    full_df = full_df.merge(
-        community_rides_stat, how="left", on=["start_day", "community"]
-    ).fillna(0)
+    full_df = full_df.merge(community_rides_stat, how="left", on=["start_day", "community"]).fillna(0)
     full_df = full_df[["start_day", "community", "rides_number"]]
 
     return full_df
@@ -102,7 +91,8 @@ def build_features_on_date(data: pd.DataFrame) -> pd.DataFrame:
     data["day_of_year"] = data["start_day"].dt.dayofyear
     data["day_of_week"] = data["start_day"].dt.day_of_week
     data["is_weekend"] = data["day_of_week"].isin({5, 6}).astype(int)
-    data["week"] = data["start_day"].dt.isocalendar().week
+    data["week"] = data["start_day"].dt.isocalendar().week.astype(int)
+    data["month"] = data["start_day"].dt.month.astype(int)
 
     return data
 
@@ -121,9 +111,7 @@ def get_center_lat_lon(path_to_file: Path) -> Tuple[float, float]:
     return lat, lon
 
 
-def build_features_on_geodata(
-    data: pd.DataFrame, boundaries: JSONType, lat: float, lon: float
-) -> pd.DataFrame:
+def build_features_on_geodata(data: pd.DataFrame, boundaries: JSONType, lat: float, lon: float) -> pd.DataFrame:
     """
     Function generates features based on geographical data -
     communities geometry and coordinates of the city center
@@ -134,33 +122,21 @@ def build_features_on_geodata(
     @return: DataFrame with features on geographical data
     """
 
-    communities_geometry_dict = {
-        feature["properties"]["community"]: feature["geometry"]
-        for feature in boundaries
-    }
+    communities_geometry_dict = {feature["properties"]["community"]: feature["geometry"] for feature in boundaries}
 
     data = data[data["community"] != "None"]
-    data["geometry"] = data["community"].apply(
-        lambda x: shape(communities_geometry_dict[x])
-    )
+    data["geometry"] = data["community"].apply(lambda x: shape(communities_geometry_dict[x]))
     data["area"] = data["geometry"].apply(lambda x: x.area)
-    data["distance_to_center"] = data["geometry"].apply(
-        lambda x: x.centroid.distance(Point(lon, lat))
-    )
+    data["distance_to_center"] = data["geometry"].apply(lambda x: x.centroid.distance(Point(lon, lat)))
 
     return data
 
 
 @click.command()
 @click.option("--path_to_raw_data", default="./data/raw", help="Path to raw data")
-@click.option(
-    "--path_to_external_data", default="./data/external", help="Path to external data"
-)
-@click.option(
-    "--path_to_interim_data", default="./data/interim", help="Path to interim data"
-)
+@click.option("--path_to_external_data", default="./data/external", help="Path to external data")
+@click.option("--path_to_interim_data", default="./data/interim", help="Path to interim data")
 def main(path_to_raw_data: str, path_to_external_data: str, path_to_interim_data: str):
-
     rides_data_filepath = Path.joinpath(Path(path_to_raw_data), "rides_data.parquet")
     input_data = pd.read_parquet(rides_data_filepath)
 
@@ -169,20 +145,14 @@ def main(path_to_raw_data: str, path_to_external_data: str, path_to_interim_data
     dataset_to_featurize = get_dataset_to_featurize(clean_data)
     features = build_features_on_date(dataset_to_featurize)
 
-    with open(
-        Path.joinpath(Path(path_to_raw_data), "boundaries.json"), "r", encoding="utf-8"
-    ) as f:
+    with open(Path.joinpath(Path(path_to_raw_data), "boundaries.json"), "r", encoding="utf-8") as f:
         geometry_data = json.load(f)["features"]
 
-    latitude, longitude = get_center_lat_lon(
-        Path.joinpath(Path(path_to_external_data), "city_center_coordinates.txt")
-    )
+    latitude, longitude = get_center_lat_lon(Path.joinpath(Path(path_to_external_data), "city_center_coordinates.txt"))
 
     features = build_features_on_geodata(features, geometry_data, latitude, longitude)
 
-    features_filepath = Path.joinpath(
-        Path(path_to_interim_data), "interim_features.parquet"
-    )
+    features_filepath = Path.joinpath(Path(path_to_interim_data), "interim_features.parquet")
     features_filepath.parent.mkdir(parents=True, exist_ok=True)
 
     features_names = [
@@ -193,9 +163,11 @@ def main(path_to_raw_data: str, path_to_external_data: str, path_to_interim_data
         "day_of_week",
         "is_weekend",
         "week",
+        "month",
         "area",
         "distance_to_center",
     ]
+    features = features[features["start_day"] < datetime(2020, 10, 18)]
     features[features_names].to_parquet(features_filepath)
 
 
