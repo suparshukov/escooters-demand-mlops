@@ -81,11 +81,18 @@ def load_boundaries_data(
 
 
 @click.command()
-@click.option("--rides_data_url", default="https://data.cityofchicago.org/api/views/3rse-fbp6/rows.csv?accessType=DOWNLOAD&bom=true&format=true&delimiter=%3B", help="Rides data url")
-@click.option("--boundaries_url", default="https://data.cityofchicago.org/api/geospatial/cauq-8yn6?method=export&format=GeoJSON", help="Boundaries data url")
+@click.option(
+    "--rides_data_url",
+    default="https://data.cityofchicago.org/api/views/3rse-fbp6/rows.csv?accessType=DOWNLOAD&bom=true&format=true&delimiter=%3B",
+    help="Rides data url",
+)
+@click.option(
+    "--boundaries_url",
+    default="https://data.cityofchicago.org/api/geospatial/cauq-8yn6?method=export&format=GeoJSON",
+    help="Boundaries data url",
+)
 @click.option("--path_to_raw_data", default="./data/raw", help="Path to raw data")
 def main(rides_data_url: str, boundaries_url: str, path_to_raw_data: str):
-
     log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
