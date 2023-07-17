@@ -10,8 +10,8 @@ import pandas as pd
 from hyperopt import hp, tpe
 from hyperopt.fmin import fmin
 from lightgbm import LGBMRegressor
-from sklearn.model_selection import KFold
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import KFold
 
 mlflow.set_tracking_uri("http://127.0.0.1:5001")
 mlflow.set_experiment("escooters-demand-lightgbm-hpo")
@@ -120,7 +120,7 @@ def get_best_lightgbm_params(
 )
 @click.option(
     "--num_trials",
-    default=10,
+    default=20,
     help="The number of parameter evaluations for the optimizer to explore",
 )
 @click.option(
@@ -183,7 +183,7 @@ def search_params(data_path: str, num_trials: int, random_state: int):
 def main():
     project_dir = Path(__file__).resolve().parents[2]
     mape_after, best_params = search_params(standalone_mode=False)
-    with open(os.path.join(project_dir, "./models/best_params.json"), "w") as best_params_file:
+    with open(os.path.join(project_dir, "./models/best_params_.json"), "w") as best_params_file:
         best_params_json = json.dumps(best_params)
         best_params_file.write(best_params_json)
 
