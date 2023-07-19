@@ -1,0 +1,29 @@
+image: python:latest
+
+stages:
+  - check_code
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+    paths:
+      - .venv
+
+before_script:
+  - python3 --version
+  - apt-get update -q -y
+  - apt-get install -y python3-pip
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - poetry install --no-root
+
+check_code:
+  stage: check_code
+  script:
+    - poetry run pip3 install black==22.6.0
+    - poetry run black . --check --verbose --diff --color
+    - poetry run pip3 install pylint
+    - poetry run pylint src/
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
