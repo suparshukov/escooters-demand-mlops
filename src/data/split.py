@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Tuple
 
-import click
 import pandas as pd
+from prefect import task
 
 
 def split_train_test(df: pd.DataFrame, test_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -15,15 +15,20 @@ def split_train_test(df: pd.DataFrame, test_size: float) -> Tuple[pd.DataFrame, 
     return train, test
 
 
-@click.command()
-@click.option("--test_size", default=0.15, help="Test dataset size")
-@click.option("--path_to_interim_data", default="./data/interim", help="Path to interim data")
-@click.option(
-    "--path_to_processed_data",
-    default="./data/processed",
-    help="Path to processed data",
-)
-def main(test_size: float, path_to_interim_data: str, path_to_processed_data: str):
+# @click.command()
+# @click.option("--test_size", default=0.15, help="Test dataset size")
+# @click.option("--path_to_interim_data", default="./data/interim", help="Path to interim data")
+# @click.option(
+#     "--path_to_processed_data",
+#     default="./data/processed",
+#     help="Path to processed data",
+# )
+@task(retries=3, retry_delay_seconds=2, name="Split dataset into train and test datasets")
+def split_dataset(
+    test_size: float = 0.15,
+    path_to_interim_data: str = "./data/interim",
+    path_to_processed_data: str = "./data/processed",
+):
     features_df = pd.read_parquet(Path.joinpath(Path(path_to_interim_data), "interim_features.parquet"))
 
     train, test = split_train_test(features_df, test_size)
@@ -32,4 +37,4 @@ def main(test_size: float, path_to_interim_data: str, path_to_processed_data: st
 
 
 if __name__ == "__main__":
-    main()
+    split_dataset()

@@ -3,9 +3,10 @@ import os
 
 import pandas as pd
 from lightgbm import LGBMRegressor
+from prefect import task
 
 
-def train_model(train: pd.DataFrame, model_features, categorical_features, model_params):
+def train_lgbm_model(train: pd.DataFrame, model_features, categorical_features, model_params):
     (X_train, y_train) = (train[model_features], train["rides_number"])
     X_train[categorical_features] = X_train[categorical_features].astype("category")
 
@@ -16,8 +17,8 @@ def train_model(train: pd.DataFrame, model_features, categorical_features, model
     return lgbm
 
 
-def main():
-
+@task(retries=3, retry_delay_seconds=2, name="Train and save model")
+def train_save_model():
     train = pd.read_parquet(os.path.join("./data/processed", "train.parquet"))
     model_features = [
         'community',
@@ -31,16 +32,16 @@ def main():
     ]
 
     model_params_path = "./models/best_params.json"
-    with open(model_params_path, "r") as f:
-        model_params = json.load(f)
+    with open(model_params_path, "r", encoding="utf-8") as file_with_model:
+        model_params = json.load(file_with_model)
 
     categorical_features = ['community', 'day_of_week', 'is_weekend']
-    model = train_model(train, model_features, categorical_features, model_params)
+    model = train_lgbm_model(train, model_features, categorical_features, model_params)
     model.booster_.save_model("./models/model.txt")
 
 
 if __name__ == "__main__":
-    main()
+    train_save_model()
 
 
 # from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score

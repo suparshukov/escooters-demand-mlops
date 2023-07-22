@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from src.data.load_data import load_rides_data, load_boundaries_data
+from src.data.load_data import load_boundaries_data, load_rides_data
 
 
 @pytest.fixture
@@ -32,14 +32,9 @@ def booundaries():
     """
 
     project_dir = Path(__file__).resolve().parents[1]
-    boundaries_url = (
-        "https://data.cityofchicago.org/api/geospatial/"
-        "cauq-8yn6?method=export&format=GeoJSON"
-    )
+    boundaries_url = "https://data.cityofchicago.org/api/geospatial/" "cauq-8yn6?method=export&format=GeoJSON"
     boundaries_filepath = Path.joinpath(project_dir, "data/raw/boundaries.json")
-    booundaries = load_boundaries_data(
-        boundaries_url, boundaries_filepath, return_data=True
-    )
+    booundaries = load_boundaries_data(boundaries_url, boundaries_filepath, return_data=True)
 
     return booundaries
 
@@ -81,19 +76,11 @@ def test_areas(rides_dataset, booundaries):
     dataset and in the districts boundaries data
     """
     rides_data_areas = sorted(
-        list(
-            [
-                area_name
-                for area_name in rides_dataset["Start Community Area Name"].unique()
-                if area_name is not None
-            ]
-        )
+        list([area_name for area_name in rides_dataset["Start Community Area Name"].unique() if area_name is not None])
     )
 
     boundaries_community_names = sorted(
-        list(
-            [feature["properties"]["community"] for feature in booundaries["features"]]
-        )
+        list([feature["properties"]["community"] for feature in booundaries["features"]])
     )
 
     assert len(rides_data_areas) == 77

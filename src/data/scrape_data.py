@@ -3,9 +3,9 @@ import logging
 from pathlib import Path
 from typing import Tuple
 
-import click
 import requests
 from bs4 import BeautifulSoup
+from prefect import task
 
 
 def scrape_city_center_coordinates(url: str, city_center_filepath: Path) -> Tuple[float, float]:
@@ -41,14 +41,18 @@ def scrape_city_center_coordinates(url: str, city_center_filepath: Path) -> Tupl
     return lat, lon
 
 
-@click.command()
-@click.option(
-    "--coordinates_page_url",
-    default="https://www.latlong.net/place/chicago-il-usa-1855.html",
-    help="Url of a page with the city center coordinates",
-)
-@click.option("--path_to_external_data", default="./data/external", help="Path to external data")
-def main(coordinates_page_url: str, path_to_external_data: str):
+# @click.command()
+# @click.option(
+#     "--coordinates_page_url",
+#     default="https://www.latlong.net/place/chicago-il-usa-1855.html",
+#     help="Url of a page with the city center coordinates",
+# )
+# @click.option("--path_to_external_data", default="./data/external", help="Path to external data")
+@task(retries=3, retry_delay_seconds=2, name="Scrape external geodata")
+def scrape_external_data(
+    coordinates_page_url: str = "https://www.latlong.net/place/chicago-il-usa-1855.html",
+    path_to_external_data: str = "./data/external",
+):
     log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
@@ -57,4 +61,4 @@ def main(coordinates_page_url: str, path_to_external_data: str):
 
 
 if __name__ == "__main__":
-    main()
+    scrape_external_data()

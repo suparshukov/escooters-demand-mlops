@@ -5,9 +5,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import click
 import pandas as pd
 import requests
+from prefect import task
 
 JSONType = Union[str, int, float, bool, None, Dict[str, Any], List[Any]]
 
@@ -36,6 +36,8 @@ def load_rides_data(
         with open(temp_csv_file, "wb") as temp_file:
             temp_file.write(response.content)
         data = pd.read_csv(temp_csv_file, sep=";")
+        data.dropna(subset=["Start Community Area Name"], inplace=True)
+        data.loc[:, "Start Community Area Number"] = data["Start Community Area Number"].astype(int)
         data.to_parquet(path_to_save_raw_data)
         print(f"raw rides data saved to {path_to_save_raw_data}")
         os.remove(temp_csv_file)
@@ -80,28 +82,21 @@ def load_boundaries_data(
     return None
 
 
-@click.command()
-@click.option(
-    "--rides_data_url",
-    default="https://data.cityofchicago.org/api/views/3rse-fbp6/rows.csv?accessType=DOWNLOAD&bom=true&format=true&delimiter=%3B",
-    help="Rides data url",
-)
-@click.option(
-    "--boundaries_url",
-    default="https://data.cityofchicago.org/api/geospatial/cauq-8yn6?method=export&format=GeoJSON",
-    help="Boundaries data url",
-)
-@click.option("--path_to_raw_data", default="./data/raw", help="Path to raw data")
-def main(rides_data_url: str, boundaries_url: str, path_to_raw_data: str):
+@task(retries=3, retry_delay_seconds=2, name="Read escooter trips data")
+def load_raw_data(
+    rides_data_url: str = "https://data.cityofchicago.org/api/views/3rse-fbp6/rows.csv?accessType=DOWNLOAD&bom=true&format=true&delimiter=%3B",
+    boundaries_url: str = "https://data.cityofchicago.org/api/geospatial/cauq-8yn6?method=export&format=GeoJSON",
+    path_to_raw_data: str = "./data/raw",
+):
     log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     rides_data_filepath = Path.joinpath(Path(path_to_raw_data), "rides_data.parquet")
-    load_rides_data(rides_data_url, rides_data_filepath)
+    load_rides_data(rides_data_url, rides_data_filepath, return_data=True)
 
     boundaries_filepath = Path.joinpath(Path(path_to_raw_data), "boundaries.json")
-    load_boundaries_data(boundaries_url, boundaries_filepath)
+    load_boundaries_data(boundaries_url, boundaries_filepath, return_data=True)
 
 
 if __name__ == "__main__":
-    main()
+    load_raw_data()
