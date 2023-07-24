@@ -31,8 +31,8 @@ check_code:
     - poetry run black . --check --verbose --diff --color
     - poetry run pip3 install pylint
     - poetry run pylint src/
-  rules:
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+  # rules:
+  #   - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
 
 build:
