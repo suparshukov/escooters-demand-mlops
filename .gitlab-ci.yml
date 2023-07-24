@@ -1,5 +1,4 @@
-image: python:latest
-
+image: python:3.10.9
 
 stages:
   - check_code
