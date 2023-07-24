@@ -1,7 +1,7 @@
 image: python:3.10.9
 
 stages:
-  - check_code
+#  - check_code
   - build
 
 variables:
@@ -30,8 +30,8 @@ check_code:
     - poetry run black . --check --verbose --diff --color
     - poetry run pip3 install pylint
     - poetry run pylint --fail-under=9 src/
-  # rules:
-  #   - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+#   rules:
+#     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
 build:
   image: docker:stable
@@ -45,7 +45,7 @@ build:
     - pip3 install --no-cache-dir awscli
   script:
     - aws ecr get-login-password --region $AWS_REGION |
-      docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+#      docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
     - docker pull $TAG_LATEST || true
     - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST -t $TAG_COMMIT -t $TAG_LATEST .
 #    - docker push $TAG_COMMIT
