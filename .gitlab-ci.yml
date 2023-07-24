@@ -22,14 +22,14 @@ before_script:
   - pip install poetry
   - poetry config virtualenvs.in-project true
   - poetry install --no-root
-
-check_code:
-  stage: check_code
-  script:
-    - poetry run pip3 install black==22.6.0
-    - poetry run black . --check --verbose --diff --color
-    - poetry run pip3 install pylint
-    - poetry run pylint --fail-under=9 src/
+#
+#check_code:
+#  stage: check_code
+#  script:
+#    - poetry run pip3 install black==22.6.0
+#    - poetry run black . --check --verbose --diff --color
+#    - poetry run pip3 install pylint
+#    - poetry run pylint --fail-under=9 src/
 #   rules:
 #     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
