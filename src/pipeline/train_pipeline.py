@@ -10,7 +10,7 @@ from src.data.scrape_data import scrape_external_data
 from src.data.split import split_dataset
 from src.features.build_features import featurize
 from src.models.hpo import hpo
-from src.models.train_model import train_save_model
+from src.models.train_model import train_log_model
 
 
 @flow(name="Model training")
@@ -20,7 +20,7 @@ def main_flow():
     featurize()
     split_dataset()
     hpo()
-    train_save_model()
+    train_log_model()
 
 
 if __name__ == "__main__":

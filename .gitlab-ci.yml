@@ -1,10 +1,16 @@
 image: python:latest
 
+
 stages:
   - check_code
+  - build
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  IMAGE_NAME: escooters-trips/escooters-trips-api
+  TAG_LATEST: public.ecr.aws/$AWS_ACCOUNT_ID/$IMAGE_NAME:latest
+#  TAG_COMMIT: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+  DOCKER_TLS_CERTDIR: ""
 
 cache:
     paths:
@@ -27,3 +33,22 @@ check_code:
     - poetry run pylint src/
   rules:
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+
+build:
+  image: docker:stable
+  stage: build
+  only:
+    - master
+  services:
+    - docker:dind
+  before_script:
+#    - apk add --no-cache python3 py3-pip
+    - pip3 install --no-cache-dir awscli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION |
+      docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+    - docker pull $TAG_LATEST || true
+    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST -t $TAG_COMMIT -t $TAG_LATEST .
+#    - docker push $TAG_COMMIT
+    - docker push $TAG_LATEST

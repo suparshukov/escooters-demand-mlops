@@ -1,18 +1,18 @@
 import json
 import pickle
-import sys
-from datetime import date
-from pathlib import Path
+from datetime import date, datetime
+from typing import Tuple
 
+import mlflow.pyfunc
 from flask import Flask, jsonify, request
 from lightgbm import Booster
+from mlflow import MlflowClient
 from shapely.geometry import Point, shape
 
-sys.path.append(str(Path(__file__).parent.parent.parent))
-from src.features.build_features import get_center_lat_lon
+TRACKING_URI = "http://16.171.140.74:5000"
+# mlflow.set_tracking_uri(TRACKING_URI)
 
-MODEL = Booster(model_file='./models/model.txt')
-
+MODEL_NAME = "escooter-demand-model"
 MODEL_FEATURES = [
     'community',
     'day_of_year',
@@ -24,19 +24,51 @@ MODEL_FEATURES = [
     'distance_to_center',
 ]
 
-with open("./references/community_codes_dict.pkl", 'rb') as community_codes_file:
+
+def load_model(model_name):
+
+    print(f'{datetime.now()} Start to load a model')
+    stage = "Production"
+    client = MlflowClient(registry_uri=TRACKING_URI)
+    latest_version = client.get_latest_versions(model_name, stages=[stage])[0].source
+    print(latest_version)
+    model = mlflow.pyfunc.load_model(model_uri=latest_version)
+    print(f'{datetime.now()} Model loaded')
+
+    return model
+
+
+MODEL = load_model(MODEL_NAME)
+
+with open("community_codes_dict.pkl", 'rb') as community_codes_file:
     COMMUNITY_CODES_DICT = pickle.load(community_codes_file)
 
-with open(Path.joinpath(Path('./data/raw'), "boundaries.json"), "r", encoding="utf-8") as boundaries_file:
+with open("boundaries.json", "r", encoding="utf-8") as boundaries_file:
     BOUNDARIES = json.load(boundaries_file)["features"]
-
-LATITUDE, LONGITUDE = get_center_lat_lon(Path.joinpath(Path('./data/external/'), "city_center_coordinates.txt"))
 
 COMMUNITY_GEOMETRY_DICT = {feature["properties"]["community"]: feature["geometry"] for feature in BOUNDARIES}
 COMMUNITY_AREA_DICT = {
     community_name: shape(COMMUNITY_GEOMETRY_DICT[community_name]).area
     for community_name in COMMUNITY_GEOMETRY_DICT.keys()
 }
+
+
+def get_center_lat_lon(path_to_file: str) -> Tuple[float, float]:
+    """
+    Function loads the coordinates of the city center from a file
+    @param path_to_file:
+    @return:
+    """
+
+    with open(path_to_file, "r", encoding="utf-8") as file_with_coordinates:
+        city_center_coordinates = file_with_coordinates.read()
+        lat, lon = [float(x) for x in city_center_coordinates.split(",")]
+
+    return lat, lon
+
+
+LATITUDE, LONGITUDE = get_center_lat_lon("city_center_coordinates.txt")
+
 COMMUNITY_DISTANCE_DICT = {
     community_name: shape(COMMUNITY_GEOMETRY_DICT[community_name]).centroid.distance(Point(LONGITUDE, LATITUDE))
     for community_name in COMMUNITY_GEOMETRY_DICT.keys()
@@ -64,18 +96,20 @@ def predict(features):
     pred = MODEL.predict([features])[0]
     return round(pred)
 
-
+print(f'{datetime.now()} Starting app')
 app = Flask('trips-prediction')
+print(f'{datetime.now()} App started')
 
 
 @app.route('/predict', methods=['POST'])
 def predict_endpoint():
     community_date = request.get_json()
+    print(f"{datetime.now()} Request: {community_date}")
 
     features = prepare_features(community_date)
     pred = predict(features)
 
-    result = {'trips': pred}
+    result = {'trips': pred, 'model_version': MODEL.metadata.run_id}
 
     return jsonify(result)
 

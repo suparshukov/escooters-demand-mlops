@@ -1,9 +1,17 @@
 import json
 import os
+from datetime import datetime
 
+import mlflow
 import pandas as pd
 from lightgbm import LGBMRegressor
+from mlflow import MlflowClient
 from prefect import task
+
+EXPERIMENT_NAME = "escooters-demand-lightgbm-hpo"
+
+mlflow.set_tracking_uri("http://16.171.140.74:5000")
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
 def train_lgbm_model(train: pd.DataFrame, model_features, categorical_features, model_params):
@@ -17,8 +25,8 @@ def train_lgbm_model(train: pd.DataFrame, model_features, categorical_features, 
     return lgbm
 
 
-@task(retries=3, retry_delay_seconds=2, name="Train and save model")
-def train_save_model():
+# @task(retries=3, retry_delay_seconds=2, name="Train a model and log it")
+def train_log_model():
     train = pd.read_parquet(os.path.join("./data/processed", "train.parquet"))
     model_features = [
         'community',
@@ -36,12 +44,30 @@ def train_save_model():
         model_params = json.load(file_with_model)
 
     categorical_features = ['community', 'day_of_week', 'is_weekend']
-    model = train_lgbm_model(train, model_features, categorical_features, model_params)
-    model.booster_.save_model("./models/model.txt")
+
+    with mlflow.start_run() as run:
+        model = train_lgbm_model(train, model_features, categorical_features, model_params)
+        model.booster_.save_model("./models/model.txt")
+
+        artifact_path = "model"
+        model_info = mlflow.lightgbm.log_model(model, artifact_path)
+
+        model_name = "escooter-demand-model"
+        # desc = f'Best model on {datetime.now()}'
+        # new_run_id = run.info.run_id
+        client = MlflowClient()
+        model_version = mlflow.register_model(model_uri=model_info.model_uri,
+                                              name=model_name)
+        print(model_version)
+        # model_version = client.create_model_version(name=name,
+        #                                             run_id=new_run_id,
+        #                                             source=model_info.model_uri,
+        #                                             description=desc)
+        client.transition_model_version_stage(model_name, model_version.version, "Production")
 
 
 if __name__ == "__main__":
-    train_save_model()
+    train_log_model()
 
 
 # from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score

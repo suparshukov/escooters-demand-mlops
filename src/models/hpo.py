@@ -18,7 +18,7 @@ from sklearn.model_selection import KFold
 
 EXPERIMENT_NAME = "escooters-demand-lightgbm-hpo"
 
-mlflow.set_tracking_uri("http://127.0.0.1:5001")
+mlflow.set_tracking_uri("http://16.171.140.74:5000")
 mlflow.set_experiment(EXPERIMENT_NAME)
 # mlflow.sklearn.autolog()
 
@@ -134,7 +134,7 @@ def get_best_lightgbm_params(
 #     default=585,
 #     help="Random state",
 # )
-def search_params(data_path: str = "./data/processed", num_trials: int = 300, random_state: int = 585):
+def search_params(data_path: str = "./data/processed", num_trials: int = 30, random_state: int = 585):
     # data_path: str = "./data/processed",
     #               num_trials: int = 300,
     #               random_state: int = 585):
