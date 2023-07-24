@@ -3,15 +3,12 @@ import os
 import pickle
 from pathlib import Path
 
-# import click
 import mlflow
 import numpy as np
 import pandas as pd
 from hyperopt import hp, tpe
 from hyperopt.fmin import fmin
 from lightgbm import LGBMRegressor
-# from mlflow.entities import ViewType
-# from mlflow.tracking import MlflowClient
 from prefect import task
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold
@@ -20,7 +17,6 @@ EXPERIMENT_NAME = "escooters-demand-lightgbm-hpo"
 
 mlflow.set_tracking_uri("http://16.171.140.74:5000")
 mlflow.set_experiment(EXPERIMENT_NAME)
-# mlflow.sklearn.autolog()
 
 
 def load_pickle(filename):
@@ -134,10 +130,7 @@ def get_best_lightgbm_params(
 #     default=585,
 #     help="Random state",
 # )
-def search_params(data_path: str = "./data/processed", num_trials: int = 30, random_state: int = 585):
-    # data_path: str = "./data/processed",
-    #               num_trials: int = 300,
-    #               random_state: int = 585):
+def search_params(data_path: str = "./data/processed", num_trials: int = 300, random_state: int = 585):
     df = pd.read_parquet(os.path.join(data_path, "train.parquet"))
     categorical_features = ['community', 'day_of_week', 'is_weekend']
     df[categorical_features] = df[categorical_features].astype("category")
@@ -187,51 +180,6 @@ def search_params(data_path: str = "./data/processed", num_trials: int = 30, ran
             break
 
     return mape_after, best_params
-
-
-#
-# @click.command()
-# @click.option(
-#     "--data_path",
-#     default="./output",
-#     help="Location where the processed NYC taxi trip data was saved"
-# )
-# @click.option(
-#     "--top_n",
-#     default=5,
-#     type=int,
-#     help="Number of top models that need to be evaluated to decide which one to promote"
-# )
-# def run_register_model(data_path: str, top_n: int):
-#
-#     client = MlflowClient()
-#
-#     # Retrieve the top_n model runs and log the models
-#     experiment = client.get_experiment_by_name(HPO_EXPERIMENT_NAME)
-#     runs = client.search_runs(
-#         experiment_ids=experiment.experiment_id,
-#         run_view_type=ViewType.ACTIVE_ONLY,
-#         max_results=top_n,
-#         order_by=["metrics.root_mean_squared_error ASC"]
-#     )
-#     for run in runs:
-#         train_and_log_model(data_path=data_path, params=run.data.params)
-#
-#     # Select the model with the lowest test RMSE
-#     mlflow.set_experiment(EXPERIMENT_NAME)
-#     print(EXPERIMENT_NAME)
-#     experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
-#     best_run = client.search_runs(
-#         experiment_ids=experiment.experiment_id,
-#         run_view_type=ViewType.ACTIVE_ONLY,
-#         max_results=1,
-#         order_by=["metrics.test_rmse ASC"]
-#     )[0]
-#     print(best_run.info.run_id)
-#     # # Register the best model
-#     model_uri = "runs:/{}/sklearn-model".format(best_run.info.run_id)
-#     # mlflow.register_model(model_uri, "RandomForestRegressionModel")
-#     # mlflow.xgboost.log_model(booster, artifact_path="models_mlflow")
 
 
 @task(retries=3, retry_delay_seconds=2, name="Search model hyperparameters")

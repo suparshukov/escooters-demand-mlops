@@ -56,8 +56,7 @@ def train_log_model():
         # desc = f'Best model on {datetime.now()}'
         # new_run_id = run.info.run_id
         client = MlflowClient()
-        model_version = mlflow.register_model(model_uri=model_info.model_uri,
-                                              name=model_name)
+        model_version = mlflow.register_model(model_uri=model_info.model_uri, name=model_name)
         print(model_version)
         # model_version = client.create_model_version(name=name,
         #                                             run_id=new_run_id,

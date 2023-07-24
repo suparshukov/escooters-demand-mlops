@@ -26,7 +26,6 @@ MODEL_FEATURES = [
 
 
 def load_model(model_name):
-
     print(f'{datetime.now()} Start to load a model')
     stage = "Production"
     client = MlflowClient(registry_uri=TRACKING_URI)
@@ -95,6 +94,7 @@ def prepare_features(input_data):
 def predict(features):
     pred = MODEL.predict([features])[0]
     return round(pred)
+
 
 print(f'{datetime.now()} Starting app')
 app = Flask('trips-prediction')
