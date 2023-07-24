@@ -47,6 +47,6 @@ build:
 #    - aws ecr get-login-password --region $AWS_REGION |
 #      docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
     - docker pull $TAG_LATEST || true
-    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST -t $TAG_COMMIT -t $TAG_LATEST .
+    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST -t $TAG_LATEST .
 #    - docker push $TAG_COMMIT
     - docker push $TAG_LATEST
