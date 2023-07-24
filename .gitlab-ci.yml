@@ -33,12 +33,11 @@ check_code:
   # rules:
   #   - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
-
 build:
   image: docker:stable
   stage: build
   only:
-    - master
+    - main
   services:
     - docker:dind
   before_script:
