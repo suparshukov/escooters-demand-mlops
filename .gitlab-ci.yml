@@ -66,5 +66,5 @@ build-train:
     - aws ecr-public get-login-password --region $AWS_REGION |
       docker login --username AWS --password-stdin public.ecr.aws/$ECR_REGISTRY_ALIAS
     - docker pull $TAG_LATEST_TRAIN || true
-    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST_TRAIN -t $TAG_LATEST_TRAIN .
+    - docker build -f .docker/Dockerfile-train --cache-from $TAG_LATEST_TRAIN -t $TAG_LATEST_TRAIN .
     - docker push $TAG_LATEST_TRAIN
