@@ -17,4 +17,3 @@ COPY [ "data/external/city_center_coordinates.txt", "./city_center_coordinates.t
 EXPOSE 9696
 
 ENTRYPOINT [ "gunicorn", "--bind=0.0.0.0:9696", "predict:app" ]
-#ENTRYPOINT [ "python", "predict.py" ]

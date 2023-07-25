@@ -1,13 +1,16 @@
 image: python:3.10.9
 
 stages:
-#  - check_code
-  - build
+  - check_code
+  - build-api
+  - build-train
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  IMAGE_NAME: escooters-trips/escooters-trips-api
-  TAG_LATEST: public.ecr.aws/$ECR_REGISTRY_ALIAS/$IMAGE_NAME:latest
+  IMAGE_NAME_API: escooters-trips/escooters-trips-api
+  TAG_LATEST_API: public.ecr.aws/$ECR_REGISTRY_ALIAS/$IMAGE_NAME_API:latest
+  IMAGE_NAME_TRAIN: escooters-trips/escooters-trips-train
+  TAG_LATEST_TRAIN: public.ecr.aws/$ECR_REGISTRY_ALIAS/$IMAGE_NAME_TRAIN:latest
   DOCKER_TLS_CERTDIR: ""
 
 cache:
@@ -21,20 +24,20 @@ before_script:
   - pip install poetry
   - poetry config virtualenvs.in-project true
   - poetry install --no-root
-#
-#check_code:
-#  stage: check_code
-#  script:
-#    - poetry run pip3 install black==22.6.0
-#    - poetry run black . --check --verbose --diff --color
-#    - poetry run pip3 install pylint
-#    - poetry run pylint --fail-under=9 src/
-#   rules:
-#     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
-build:
+check_code:
+  stage: check_code
+  script:
+    - poetry run pip3 install black==22.6.0
+    - poetry run black . --check --verbose --diff --color
+    - poetry run pip3 install pylint
+    - poetry run pylint --fail-under=9 src/
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+build-api:
   image: docker:stable
-  stage: build
+  stage: build-api
   only:
     - main
   services:
@@ -45,6 +48,23 @@ build:
   script:
     - aws ecr-public get-login-password --region $AWS_REGION |
       docker login --username AWS --password-stdin public.ecr.aws/$ECR_REGISTRY_ALIAS
-    - docker pull $TAG_LATEST || true
-    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST -t $TAG_LATEST .
-    - docker push $TAG_LATEST
+    - docker pull $TAG_LATEST_API || true
+    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST_API -t $TAG_LATEST_API .
+    - docker push $TAG_LATEST_API
+
+build-train:
+  image: docker:stable
+  stage: build-train
+  only:
+    - main
+  services:
+    - docker:dind
+  before_script:
+    - apk add --no-cache python3 py3-pip
+    - pip3 install --no-cache-dir awscli
+  script:
+    - aws ecr-public get-login-password --region $AWS_REGION |
+      docker login --username AWS --password-stdin public.ecr.aws/$ECR_REGISTRY_ALIAS
+    - docker pull $TAG_LATEST_TRAIN || true
+    - docker build -f .docker/Dockerfile-api --cache-from $TAG_LATEST_TRAIN -t $TAG_LATEST_TRAIN .
+    - docker push $TAG_LATEST_TRAIN

@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 
 import mlflow
 import pandas as pd
@@ -9,8 +8,9 @@ from mlflow import MlflowClient
 from prefect import task
 
 EXPERIMENT_NAME = "escooters-demand-lightgbm-hpo"
+TRACKING_URI = os.getenv("TRACKING_URI")
 
-mlflow.set_tracking_uri("http://16.171.140.74:5000")
+mlflow.set_tracking_uri(TRACKING_URI)
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 
@@ -25,7 +25,7 @@ def train_lgbm_model(train: pd.DataFrame, model_features, categorical_features, 
     return lgbm
 
 
-# @task(retries=3, retry_delay_seconds=2, name="Train a model and log it")
+@task(retries=3, retry_delay_seconds=2, name="Train a model and log it")
 def train_log_model():
     train = pd.read_parquet(os.path.join("./data/processed", "train.parquet"))
     model_features = [
@@ -53,15 +53,8 @@ def train_log_model():
         model_info = mlflow.lightgbm.log_model(model, artifact_path)
 
         model_name = "escooter-demand-model"
-        # desc = f'Best model on {datetime.now()}'
-        # new_run_id = run.info.run_id
         client = MlflowClient()
         model_version = mlflow.register_model(model_uri=model_info.model_uri, name=model_name)
-        print(model_version)
-        # model_version = client.create_model_version(name=name,
-        #                                             run_id=new_run_id,
-        #                                             source=model_info.model_uri,
-        #                                             description=desc)
         client.transition_model_version_stage(model_name, model_version.version, "Production")
 
 

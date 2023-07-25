@@ -14,8 +14,9 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold
 
 EXPERIMENT_NAME = "escooters-demand-lightgbm-hpo"
+TRACKING_URI = os.getenv("TRACKING_URI")
 
-mlflow.set_tracking_uri("http://16.171.140.74:5000")
+mlflow.set_tracking_uri(TRACKING_URI)
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 

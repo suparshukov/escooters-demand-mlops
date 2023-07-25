@@ -1,0 +1,14 @@
+FROM python:3.10.9
+
+WORKDIR /app
+COPY [ "poetry.lock", "pyproject.toml", "./" ]
+
+RUN pip3 install --upgrade pip
+ENV PYTHONPATH=${PYTHONPATH}:${PWD}
+RUN pip3 install poetry
+RUN poetry config virtualenvs.create false
+RUN poetry install --without dev,api
+
+COPY . .
+
+ENTRYPOINT [ "python", "src/pipeline/train_pipeline.py" ]
