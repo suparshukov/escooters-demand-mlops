@@ -1,6 +1,7 @@
 import json
 import os
 
+import boto3
 import mlflow
 import pandas as pd
 from lightgbm import LGBMRegressor
@@ -9,6 +10,8 @@ from prefect import task
 
 EXPERIMENT_NAME = "escooters-demand-lightgbm-hpo"
 TRACKING_URI = os.getenv("TRACKING_URI")
+print(TRACKING_URI)
+BUCKET_NAME = "serjeeon-learning-bucket"
 
 mlflow.set_tracking_uri(TRACKING_URI)
 mlflow.set_experiment(EXPERIMENT_NAME)
@@ -25,9 +28,15 @@ def train_lgbm_model(train: pd.DataFrame, model_features, categorical_features, 
     return lgbm
 
 
-@task(retries=3, retry_delay_seconds=2, name="Train a model and log it")
+def upload_reference_data(filename="./data/reference.parquet"):
+    client = boto3.client("s3")
+    client.upload_file(filename, BUCKET_NAME, "escooters-demand/data/reference.parquet")
+
+
+@task(retry_delay_seconds=2, name="Train a model and log it")
 def train_log_model():
     train = pd.read_parquet(os.path.join("./data/processed", "train.parquet"))
+    val_data = pd.read_parquet(os.path.join("./data/processed", "test.parquet"))
     model_features = [
         'community',
         'day_of_year',
@@ -49,6 +58,12 @@ def train_log_model():
         model = train_lgbm_model(train, model_features, categorical_features, model_params)
         model.booster_.save_model("./models/model.txt")
 
+        val_data[categorical_features] = val_data[categorical_features].astype("category")
+        val_preds = model.predict(val_data[model_features])
+        val_data['prediction'] = val_preds
+        val_data.to_parquet("./data/reference.parquet")
+        upload_reference_data()
+
         artifact_path = "model"
         model_info = mlflow.lightgbm.log_model(model, artifact_path)
 
@@ -57,30 +72,8 @@ def train_log_model():
         model_version = mlflow.register_model(model_uri=model_info.model_uri, name=model_name)
         client.transition_model_version_stage(model_name, model_version.version, "Production")
 
+    return model
+
 
 if __name__ == "__main__":
     train_log_model()
-
-
-# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-#
-# import seaborn as sns
-# test = pd.read_parquet('../data/processed/test.parquet')
-# X_test, y_test = test[model_features], test['rides_number']
-# X_test[categorical_features] = X_test[categorical_features].astype("category")
-# X_test["week"] = X_test["week"].astype(int)
-#
-# y_pred = model.predict(X_test)
-#
-# X_test['y_true'] = y_test
-# X_test['y_pred'] = np.round(y_pred)
-#
-# mean_absolute_error(X_test['y_true'], X_test['y_pred'])
-# mean_squared_error(X_test['y_true'], X_test['y_pred'], squared=False)
-# r2_score(X_test['y_true'], X_test['y_pred'])
-#
-# sns.histplot(X_test[['y_pred', 'y_true']])
-#
-# sns.lineplot(X_test.groupby('day_of_year').agg({'y_true': 'sum', 'y_pred': 'sum'}))
-#
-# pass

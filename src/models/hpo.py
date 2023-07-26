@@ -131,7 +131,7 @@ def get_best_lightgbm_params(
 #     default=585,
 #     help="Random state",
 # )
-def search_params(data_path: str = "./data/processed", num_trials: int = 300, random_state: int = 585):
+def search_params(data_path: str = "./data/processed", num_trials: int = 10, random_state: int = 585):
     df = pd.read_parquet(os.path.join(data_path, "train.parquet"))
     categorical_features = ['community', 'day_of_week', 'is_weekend']
     df[categorical_features] = df[categorical_features].astype("category")

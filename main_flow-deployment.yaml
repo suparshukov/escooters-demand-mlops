@@ -1,0 +1,46 @@
+###
+### A complete description of a Prefect Deployment for flow 'Model training'
+###
+name: escooters-demand-train
+description: null
+version: 82babd4451a6d23c83dbd41ddd0dee94
+# The work queue that will handle this deployment's runs
+work_queue_name: escooters-demand-training
+work_pool_name: default-agent-pool
+tags: []
+parameters: {}
+schedule:
+  cron: 0 5 * * *
+  timezone: null
+  day_or: true
+is_schedule_active: true
+infra_overrides: {}
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: Model training
+manifest_path: null
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command: null
+  stream_output: true
+  working_dir: null
+  _block_document_id: 3cc13512-2479-404e-8ba6-8b956dd9c4f6
+  _block_document_name: anonymous-5e1ae5b8-9cee-4160-bb32-4a4f16a9a833
+  _is_anonymous: true
+  block_type_slug: process
+  _block_type_slug: process
+storage: null
+path: /Users/sergey.parshukov/Projects/escooters-demand-mlops
+entrypoint: src/pipeline/train_pipeline.py:main_flow
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties: {}
+  required: null
+  definitions: null
+timestamp: '2023-07-26T10:26:27.915507+00:00'
