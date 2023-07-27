@@ -155,7 +155,7 @@ def featurize(
     latitude, longitude = get_center_lat_lon(Path.joinpath(Path(path_to_external_data), "city_center_coordinates.txt"))
 
     community_codes_dict = create_community_codes_dict(clean_data)
-    community_codes_inv_dict = nv_map = {v: k for k, v in community_codes_dict.items()}
+    community_codes_inv_dict = {v: k for k, v in community_codes_dict.items()}
     features['community_name'] = features['community'].map(community_codes_inv_dict)
 
     features = build_features_on_geodata(features, geometry_data, latitude, longitude)

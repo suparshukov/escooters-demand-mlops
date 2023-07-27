@@ -28,9 +28,9 @@ def train_lgbm_model(train: pd.DataFrame, model_features, categorical_features, 
     return lgbm
 
 
-def upload_reference_data(filename="./data/reference.parquet"):
+def upload_reference_data(filename="data/reference.parquet"):
     client = boto3.client("s3")
-    client.upload_file(filename, BUCKET_NAME, "escooters-demand/data/reference.parquet")
+    client.upload_file(filename, BUCKET_NAME, os.path.join("escooters-demand", filename))
 
 
 @task(retry_delay_seconds=2, name="Train a model and log it")
@@ -61,8 +61,8 @@ def train_log_model():
         val_data[categorical_features] = val_data[categorical_features].astype("category")
         val_preds = model.predict(val_data[model_features])
         val_data['prediction'] = val_preds
-        val_data.to_parquet("./data/reference.parquet")
-        upload_reference_data()
+        val_data[: round(len(val_data) / 2)].to_parquet("data/reference.parquet")
+        upload_reference_data("./data/reference.parquet")
 
         artifact_path = "model"
         model_info = mlflow.lightgbm.log_model(model, artifact_path)

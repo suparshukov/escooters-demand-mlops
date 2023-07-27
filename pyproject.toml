@@ -34,9 +34,16 @@ isort = "^5.12.0"
 pylint = "^2.17.4"
 pre-commit = "^3.3.3"
 
+
 [tool.poetry.group.api.dependencies]
 flask = "^2.3.2"
 gunicorn = "20.1.0"
+
+
+[tool.poetry.group.monitoring.dependencies]
+llvmlite = "0.40.1"
+evidently = "^0.4.0"
+psycopg = "^3.1.9"
 
 [build-system]
 requires = ["poetry-core"]

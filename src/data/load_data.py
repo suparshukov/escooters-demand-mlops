@@ -5,11 +5,14 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+import boto3
 import pandas as pd
 import requests
 from prefect import task
 
 JSONType = Union[str, int, float, bool, None, Dict[str, Any], List[Any]]
+
+BUCKET_NAME = "serjeeon-learning-bucket"
 
 
 def load_rides_data(
@@ -82,20 +85,27 @@ def load_boundaries_data(
     return None
 
 
+def upload_data_to_s3(filename):
+    client = boto3.client("s3")
+    client.upload_file(filename, BUCKET_NAME, os.path.join("escooters-demand", filename))
+
+
 @task(retries=3, retry_delay_seconds=2, name="Read escooter trips data")
 def load_raw_data(
     rides_data_url: str = "https://data.cityofchicago.org/api/views/3rse-fbp6/rows.csv?accessType=DOWNLOAD&bom=true&format=true&delimiter=%3B",
     boundaries_url: str = "https://data.cityofchicago.org/api/geospatial/cauq-8yn6?method=export&format=GeoJSON",
-    path_to_raw_data: str = "./data/raw",
+    path_to_raw_data: str = "data/raw",
 ):
     log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     rides_data_filepath = Path.joinpath(Path(path_to_raw_data), "rides_data.parquet")
     load_rides_data(rides_data_url, rides_data_filepath, return_data=True)
+    upload_data_to_s3(rides_data_filepath)
 
     boundaries_filepath = Path.joinpath(Path(path_to_raw_data), "boundaries.json")
     load_boundaries_data(boundaries_url, boundaries_filepath, return_data=True)
+    upload_data_to_s3(boundaries_filepath)
 
 
 if __name__ == "__main__":

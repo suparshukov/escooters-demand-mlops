@@ -5,7 +5,6 @@ from typing import Tuple
 
 import mlflow.pyfunc
 from flask import Flask, jsonify, request
-from lightgbm import Booster
 from mlflow import MlflowClient
 from shapely.geometry import Point, shape
 
@@ -26,11 +25,9 @@ MODEL_FEATURES = [
 
 
 def load_model(model_name):
-    print(f'{datetime.now()} Start to load a model')
     stage = "Production"
     client = MlflowClient(registry_uri=TRACKING_URI)
     latest_version = client.get_latest_versions(model_name, stages=[stage])[0].source
-    print(latest_version)
     model = mlflow.pyfunc.load_model(model_uri=latest_version)
     print(f'{datetime.now()} Model loaded')
 

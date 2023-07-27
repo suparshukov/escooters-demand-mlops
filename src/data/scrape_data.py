@@ -1,11 +1,15 @@
 """Module providing functions for scraping external data"""
 import logging
+import os
 from pathlib import Path
 from typing import Tuple
 
+import boto3
 import requests
 from bs4 import BeautifulSoup
 from prefect import task
+
+BUCKET_NAME = "serjeeon-learning-bucket"
 
 
 def scrape_city_center_coordinates(url: str, city_center_filepath: Path) -> Tuple[float, float]:
@@ -41,6 +45,11 @@ def scrape_city_center_coordinates(url: str, city_center_filepath: Path) -> Tupl
     return lat, lon
 
 
+def upload_data_to_s3(filename):
+    client = boto3.client("s3")
+    client.upload_file(filename, BUCKET_NAME, os.path.join("escooters-demand", filename))
+
+
 # @click.command()
 # @click.option(
 #     "--coordinates_page_url",
@@ -51,13 +60,14 @@ def scrape_city_center_coordinates(url: str, city_center_filepath: Path) -> Tupl
 @task(retries=3, retry_delay_seconds=2, name="Scrape external geodata")
 def scrape_external_data(
     coordinates_page_url: str = "https://www.latlong.net/place/chicago-il-usa-1855.html",
-    path_to_external_data: str = "./data/external",
+    path_to_external_data: str = "data/external",
 ):
     log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     city_center_coordinates_filepath = Path.joinpath(Path(path_to_external_data), "city_center_coordinates.txt")
     scrape_city_center_coordinates(coordinates_page_url, city_center_coordinates_filepath)
+    upload_data_to_s3(city_center_coordinates_filepath)
 
 
 if __name__ == "__main__":
