@@ -32,8 +32,6 @@ check_code:
     - poetry run black . --check --verbose --diff --color
     - poetry run pip3 install pylint
     - poetry run pylint --fail-under=9 src/
-  rules:
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
 build-api:
   image: docker:stable
