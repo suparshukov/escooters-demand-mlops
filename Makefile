@@ -1,23 +1,17 @@
 LOCAL_TAG:=$(shell date +"%Y-%m-%d-%H-%M")
-LOCAL_IMAGE_NAME:=batch-model-rides:${LOCAL_TAG}
+LOCAL_IMAGE_NAME_API:=escooters-trips/escooters-trips-api:${LOCAL_TAG}
+LOCAL_IMAGE_NAME_TRAIN:=escooters-trips/escooters-trips-train:${LOCAL_TAG}
 
 test:
 	pytest tests/
 
-quality_checks:
+quality_checks: test
 	isort .
 	black .
-	pylint --recursive=y .
+	pylint --recursive=y --fail-under=9 .
 
-build: quality_checks test
-	docker build -t ${LOCAL_IMAGE_NAME} .
+build_api: quality_checks
+	docker build --platform linux/amd64 -f .docker/Dockerfile-api -t ${LOCAL_IMAGE_NAME_API} .
 
-integration_test: build
-	LOCAL_IMAGE_NAME=${LOCAL_IMAGE_NAME} bash integraton-test/run.sh
-
-publish: build integration_test
-	LOCAL_IMAGE_NAME=${LOCAL_IMAGE_NAME} bash scripts/publish.sh
-
-setup:
-	poetry install --only dev
-	pre-commit install
+build_train: quality_checks
+	docker build --platform linux/amd64 -f .docker/Dockerfile-train -t ${LOCAL_IMAGE_NAME_TRAIN} .
