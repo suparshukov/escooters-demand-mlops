@@ -2,9 +2,10 @@
 
 ### 1. Problem description
 
-The company rents electric scooters in 77 Chicago neighbourhoods. Each neighbourhood has a small logistics centre - a warehouse where electric scooters are concentrated, from which the employees responsible for the neighbourhood distribute the scooters throughout the day to different locations within the neighbourhood. In order to ensure the required number of scooters in the district warehouse, it is necessary to have a forecast of the demand for scooters for the next 3 days. Such forecasting horizon is conditioned by the process of logistic supply of electric scooters to the district warehouse from remote warehouses outside the city, electric scooter service stations and the process of purchasing new electric scooters from suppliers.
-
-The purpose of the Project is to provide the Company with forecasts of demand for electric scooters in Chicago neighbourhoods in order to meet this demand with electric scooters. The use of such forecasts will minimise scooter downtime (not keeping excess scooters in district warehouses) and minimise the occurrence of scooter shortage situations in district warehouses to meet demand within the district. The Project will develop a solution that will generate forecasts of the number of rides on the Company's electric scooters in each of Chicago's 77 neighbourhoods. Forecasting will be done for the next several days (by day) with a granularity of 1 day for each neighbourhood.
+The company rents electric scooters in 77 Chicago neighbourhoods. Each neighbourhood has a small logistics centre - a warehouse where electric scooters are concentrated, from which the employees responsible for the neighbourhood distribute the scooters throughout the day to different locations within the neighbourhood.   
+In order to ensure the required number of scooters in the district warehouse, it is necessary to have a forecast of the demand for scooters for the next 3 days. Such forecasting horizon is conditioned by the process of logistic supply of electric scooters to the district warehouse from remote warehouses outside the city, electric scooter service stations and the process of purchasing new electric scooters from suppliers.   
+The purpose of the Project is to provide the Company with forecasts of demand for electric scooters in Chicago neighbourhoods in order to meet this demand with electric scooters. The use of such forecasts will minimise scooter downtime (not keeping excess scooters in district warehouses) and minimise the occurrence of scooter shortage situations in district warehouses to meet demand within the district.   
+The Project will develop a solution that will generate forecasts of the number of rides on the Company's electric scooters in each of Chicago's 77 neighbourhoods. Forecasting will be done for the next several days (by day) with a granularity of 1 day for each neighbourhood.
 
 ### Project Goal:
 Build an end-to-end machine learning project that would provide demand forecasts for electric scooters in the neighbourhoods of Chicago.
@@ -38,25 +39,28 @@ The project is developed on the cloud.
 - **Prefect Cloud**  is used to automate and monitor the managed training workflow
 
 #### 2. Experiment tracking and model registry
-MLflow (on Amazon EC2) with artifact storage on Amazon S3 are used for experiment tracking and model registry, runs are stored in PostgreSQL (Amazon RDS).
-MLflow http://16.171.140.74:5000
-Experiments: http://16.171.140.74:5000/#/experiments/1
-Amazon S3 bucket is used to store model artifacts: s3://serjeeon-learning-bucket/escooters-demand/mlflow-artifacts-remote/
+MLflow (on Amazon EC2) with artifact storage on Amazon S3 are used for experiment tracking and model registry, runs are stored in PostgreSQL (Amazon RDS).   
+MLflow http://16.171.140.74:5000   
+Experiments: http://16.171.140.74:5000/#/experiments/1   
+Amazon S3 bucket is used to store model artifacts: s3://serjeeon-learning-bucket/escooters-demand/mlflow-artifacts-remote   
 As a result of the hyperparameters optimisation, the best model is saved to the model registry: http://16.171.140.74:5000/#/models/escooter-demand-model
 
 #### 3. Workflow orchestration
 Prefect is used for Workflow orchestration.
 A flow for training the model has been developed, including the optimisation of hyperparameters. The flow consists of several tasks and is scheduled to run using Prefect.
 
+```
 prefect cloud login -k {PREFECT_KEY}
 prefect deployment build -n escooters-demand-train -p default-agent-pool -q escooters-demand-training src/pipeline/train_pipeline.py:main_flow --cron "0 5 * * *"
 prefect deployment apply main_flow-deployment.yaml
 prefect agent start --pool default-agent-pool --work-queue escooters-demand-training
+```
 
 Prefect deployment configurations: main_flow-deployment.yaml
 
 #### 4. Model deployment
-Developed a service based on ML-model, which provides forecasts of demand for electric scooters by districts. Containerisation (Docker) is used. Docker image is created and pushed to the ECR public repository when doing CI/CD (public.ecr.aws/h6l8h0t3/escooters-trips/escooters-trips-api:latest).
+Developed a service based on ML-model, which provides forecasts of demand for electric scooters by districts. 
+Containerisation (Docker) is used. Docker image is created and pushed to the ECR public repository when doing CI/CD (public.ecr.aws/h6l8h0t3/escooters-trips/escooters-trips-api:latest).   
 The service is available at http://16.171.140.74:9696/predict
 
 Method call example:
@@ -76,18 +80,18 @@ Response message example:
 ```
 
 #### 5. Model monitoring
-Evidently is used to calculate model monitoring metrics.
-Grafana is used to visualise the metrics (http://16.171.140.74:3000).
-The metrics are stored in PostreSQL database.
+Evidently is used to calculate model monitoring metrics.   
+Grafana is used to visualise the metrics (http://16.171.140.74:3000).   
+The metrics are stored in PostreSQL database.   
 
-A dashboard was developed to monitor the model:
-Home -> Dashboards -> Escooters demand monitoring
-http://16.171.140.74:3000/d/dbba5bf2-9fc8-45e8-9980-121956ec0f4c/escooters-demand-monitoring?orgId=1
+A dashboard was developed to monitor the model:   
+Home -> Dashboards -> Escooters demand monitoring   
+http://16.171.140.74:3000/d/dbba5bf2-9fc8-45e8-9980-121956ec0f4c/escooters-demand-monitoring?orgId=1   
 Login ‘admin’, password ‘admin’
 
 
 #### 6. Reproducibility
-To ensure reproducibility dependency management tool Poetry is used.
+To ensure reproducibility dependency management tool Poetry is used.   
 The required dependencies are organised by using groups in configuration of the project (pyproject.toml): base, train, dev, api, monitoring.
 
 To run a web service use commands:
