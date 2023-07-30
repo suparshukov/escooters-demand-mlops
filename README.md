@@ -1,3 +1,5 @@
+##  <span style='color: red;'>!!!</span> This project was moved from my GitLab repository so it could be submitted for review via a form. Please perform CI/CD related checks on GitLab: https://gitlab.com/parshukovsu/escooters-demand-mlops
+
 ## Project: Forecasting the demand for electric scooters in Chicago neighbourhoods
 
 ### 1. Problem description
